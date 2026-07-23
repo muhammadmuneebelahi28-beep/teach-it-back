@@ -49,7 +49,7 @@ The AI feature
 What it does: after you type an explanation of your topic, the AI reads it and responds only with pointed follow-up questions that reference the specific words and claims you used â€” it is explicitly instructed never to supply the explanation itself. Every reply also silently includes a machine-readable clarity score (0â€“100) and a short list of the concrete gaps still open, which the app parses out of the response and uses to drive the gauge, the sticky-note list, and the sparkline. The conversation continues, turn by turn, until your explanation is airtight or you decide to stop.
 
 
-The exact system prompt (in app.js, SYSTEM_PROMPT constant):
+The exact system prompt (in index.html, SYSTEM_PROMPT constant):
 
 
 You are playing the role of a sharp, relentlessly curious classmate who is helping a student practice the Feynman Technique: the student explains a concept in their own words, and you test whether they actually understand it or are just repeating memorized phrases.
@@ -60,53 +60,61 @@ Ground rules, follow all of them every single turn:
 3. Ask 1-3 short, pointed follow-up questions that quote or reference the specific words THEY used. Do not ask generic questions like "can you elaborate?" â€” ask "you said X causes Y, but what actually connects them?"
 4. If a specific sub-point they made is genuinely clear and correct, say so in one short sentence, then move on to probing the next weak spot. Don't be needlessly harsh, but don't hand out unearned praise either.
 5. Keep your tone like a curious peer, not a teacher grading an exam. Short sentences. No lecturing.
-6. Every single reply, with no exceptions, must end with a fenced code block labeled json containing your current assessment of THIS topic based on everything explained so far in the conversation:
-```json
-{"clarity": <integer 0-100, your honest estimate of how well they currently understand the topic>, "gaps": [<up to 5 short strings, each a specific unresolved gap, phrased as a short label like "why voltage and current differ" â€” not full sentences>]}
+6. Every single reply, with no exceptions, must end with a fenced code block labeled json containing your current assessment of THIS topic based on everything explained so far in the conversation. The JSON object must have two fields: "clarity" (an integer 0-100, your honest estimate of how well they currently understand the topic) and "gaps" (an array of up to 5 short strings, each a specific unresolved gap, phrased as a short label like "why voltage and current differ" â€” not full sentences).
+7. The clarity score should move meaningfully turn to turn based on whether they resolved previous gaps or introduced new confusion. Do not default to round numbers out of laziness â€” use the full 0-100 range honestly.
+8. If clarity reaches roughly 85+ and there are no serious remaining gaps, say so plainly and congratulate them briefly â€” you can stop probing at that point.
 
-
-The clarity score should move meaningfully turn to turn based on whether they resolved previous gaps or introduced new confusion. Do not default to round numbers out of laziness â€” use the full 0-100 range honestly.
-
-If clarity reaches roughly 85+ and there are no serious remaining gaps, say so plainly and congratulate them briefly â€” you can stop probing at that point.
+Model/provider: your choice, set in the in-app Settings panel. Three providers are supported out of the box:
 
 
 
-**Model/provider:** your choice, set in the in-app Settings panel. Three providers are supported out of the box:
-- **Groq** (recommended â€” genuinely free, no credit card, no regional restrictions) â€” default model `llama-3.3-70b-versatile`
-- **Google Gemini** â€” has a free tier, though it's not available without billing in every region
-- **Anthropic (Claude)** or **OpenAI** â€” for anyone who already has a paid key
+Groq (recommended â€” genuinely free, no credit card, no regional restrictions) â€” default model llama-3.3-70b-versatile
+
+Google Gemini â€” has a free tier, though it's not available without billing in every region
+
+Anthropic (Claude) or OpenAI â€” for anyone who already has a paid key
+
 
 The model name field is free text, so you can point it at any chat-completions-compatible model you have access to.
 
----
 
-## Tools, services, and AI models used to build it
 
-- **Built with:** Claude (Anthropic) as a coding assistant, hand-written HTML/CSS/JavaScript, no framework or build step
-- **Fonts:** Google Fonts â€” Lora (headings), Inter (body), Caveat (handwritten AI marginalia)
-- **AI at runtime:** Anthropic Claude API or OpenAI API â€” whichever the user selects and supplies a key for; no key is bundled with the app
-- **Hosting:** deployed as a static site (see below) â€” works on Vercel, Netlify, GitHub Pages, or literally any static file host
-- **Storage:** browser `localStorage` only â€” no database, no server
+Tools, services, and AI models used to build it
 
----
 
-## Screenshots
+Built with: Claude (Anthropic) as a coding assistant, hand-written HTML/CSS/JavaScript, no framework or build step
 
-**The AI classmate in action** — clarity gauge and gap tracker updating live:
-![AI classmate session](screeen%20tech.png)
+Fonts: Google Fonts â€” Lora (headings), Inter (body), Caveat (handwritten AI marginalia)
 
-**Start screen** — with a saved topic in the notebook rail:
-![Start screen](teach%20it%20back.png)
+AI at runtime: Anthropic Claude API or OpenAI API â€” whichever the user selects and supplies a key for; no key is bundled with the app
 
-**Settings panel** — choosing a free AI provider:
-![Settings panel](empty%20api%20key%20ss.png)
+Hosting: deployed as a static site (see below) â€” works on Vercel, Netlify, GitHub Pages, or literally any static file host
 
-## How to run it
+Storage: browser localStorage only â€” no database, no server
 
-### Locally
+
+
+Screenshots
+
+
+screenshots/01-ai-classmate-in-action.png â€” an active session (topic: "what is photosynthesis") showing the AI classmate's follow-up questions, the clarity gauge at 20%, and the gap sticky notes populated on the right
+
+screenshots/02-start-screen.png â€” the topic entry screen, with a previously-saved topic visible in the notebook rail on the left
+
+screenshots/03-settings.png â€” the Settings panel with Groq selected as the provider (API key field left empty for the screenshot)
+
+
+(Add the actual image files to a screenshots/ folder in this repo and update the paths above, or just paste the images directly into this README on GitHub.)
+
+
+
+How to run it
+
+Locally
+
 No build step, no dependencies to install â€” it's a single HTML file.
 
-```bash
+
 git clone https://github.com/muhammadmuneebelahi28-beep/teach-it-back.git
 cd teach-it-back
 
