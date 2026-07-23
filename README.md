@@ -92,13 +92,14 @@ The model name field is free text, so you can point it at any chat-completions-c
 
 ## Screenshots
 
-1. `screenshots/01-ai-classmate-in-action.png` â€” an active session (topic: "what is photosynthesis") showing the AI classmate's follow-up questions, the clarity gauge at 20%, and the gap sticky notes populated on the right
-2. `screenshots/02-start-screen.png` â€” the topic entry screen, with a previously-saved topic visible in the notebook rail on the left
-3. `screenshots/03-settings.png` â€” the Settings panel with Groq selected as the provider (API key field left empty for the screenshot)
+**The AI classmate in action** — clarity gauge and gap tracker updating live:
+![AI classmate session](screeen%20tech.png)
 
-*(Add the actual image files to a `screenshots/` folder in this repo and update the paths above, or just paste the images directly into this README on GitHub.)*
+**Start screen** — with a saved topic in the notebook rail:
+![Start screen](teach%20it%20back.png)
 
----
+**Settings panel** — choosing a free AI provider:
+![Settings panel](empty%20api%20key%20ss.png)
 
 ## How to run it
 
