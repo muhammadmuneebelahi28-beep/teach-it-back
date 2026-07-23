@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teach It Back — a Feynman-technique study companion</title>
+<meta name="description" content="Explain a concept in your own words. A relentless AI student pokes holes in your explanation until you actually understand it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* ===========================================================
+   Teach It Back — design tokens
+   Paper:      #EEF0E6  (soft sage-paper, not the usual cream)
+   Ink:        #22314F  (deep navy — the student's own hand)
+   Ink soft:   #58607A
+   Red pen:    #B23A2E  (the AI classmate's marginalia)
+   Highlight:  #E8C547  (sparing, for the clarity gauge)
+   Line:       #C9CFC0  (faint ruled lines)
+   Display face: Lora (serif, academic)
+   Body face:    Inter
+   Marginalia:   Caveat (handwritten, red-pen voice)
+=========================================================== */
+
+:root {
+  --paper: #EEF0E6;
+  --paper-raised: #F6F7F1;
+  --ink: #22314F;
+  --ink-soft: #58607A;
+  --ink-faint: #8B92A4;
+  --red-pen: #B23A2E;
+  --red-pen-soft: #D8887E;
+  --highlight: #E8C547;
+  --line: #C9CFC0;
+  --sticky: #F4E8AE;
+  --shadow: rgba(34, 49, 79, 0.14);
+  --radius: 3px;
+  --serif: 'Lora', serif;
+  --sans: 'Inter', sans-serif;
+  --hand: 'Caveat', cursive;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  position: relative;
+}
+
+.paper-texture {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(34,49,79,0.035) 28px);
+  opacity: 0.6;
+}
+
+button, input, textarea, select { font-family: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--red-pen);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* ---------- Masthead ---------- */
+.masthead {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 28px 32px 18px;
+  border-bottom: 2px solid var(--ink);
+}
+.wordmark {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 2rem;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.tagline {
+  margin: 4px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  max-width: 46ch;
+}
+.icon-btn {
+  background: transparent;
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.icon-btn:hover { background: var(--ink); color: var(--paper); }
+
+/* ---------- Layout ---------- */
+.layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 220px 1fr 260px;
+  gap: 0;
+  min-height: calc(100vh - 96px);
+}
+
+.rail-label {
+  font-family: var(--hand);
+  font-size: 1.15rem;
+  color: var(--red-pen);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+/* ---------- Left rail: topic list ---------- */
+.topic-rail {
+  border-right: 1px dashed var(--line);
+  padding: 24px 18px;
+}
+.rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.ghost-btn {
+  background: transparent;
+  border: none;
+  color: var(--red-pen);
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ghost-btn.small { font-size: 0.78rem; }
+.ghost-btn:hover { color: var(--ink); }
+
+.topic-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.topic-item {
+  padding: 9px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  border: 1px solid transparent;
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+.topic-item:hover { background: var(--paper-raised); }
+.topic-item.active {
+  background: var(--paper-raised);
+  border-color: var(--line);
+  color: var(--ink);
+  font-weight: 600;
+}
+.topic-item .topic-score {
+  font-family: var(--hand);
+  font-size: 1rem;
+  color: var(--red-pen);
+  flex-shrink: 0;
+}
+.rail-empty {
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+  line-height: 1.5;
+  margin-top: 10px;
+}
+
+/* ---------- Center: session panel ---------- */
+.session-panel {
+  position: relative;
+  padding: 40px 44px;
+  border-right: 1px dashed var(--line);
+}
+.session-panel::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 78px;
+  width: 2px;
+  background: var(--red-pen-soft);
+  opacity: 0.45;
+}
+
+.start-screen { max-width: 560px; margin: 40px auto 0; text-align: left; }
+.start-kicker {
+  font-family: var(--hand);
+  color: var(--red-pen);
+  font-size: 1.15rem;
+  margin: 0 0 6px;
+}
+.start-screen h2 {
+  font-family: var(--serif);
+  font-size: 1.9rem;
+  margin: 0 0 10px;
+}
+.start-copy { color: var(--ink-soft); line-height: 1.6; margin-bottom: 26px; }
+
+.topic-input, .field-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: 1rem;
+  margin-bottom: 16px;
+}
+.topic-input:focus, .field-input:focus { outline: 2px solid var(--red-pen); outline-offset: 1px; }
+
+.primary-btn {
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  padding: 12px 22px;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.primary-btn:hover { background: var(--red-pen); }
+.primary-btn.small { padding: 8px 16px; font-size: 0.85rem; }
+.primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.hidden { display: none !important; }
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.session-kicker {
+  font-family: var(--hand);
+  color: var(--red-pen);
+  font-size: 1.1rem;
+  margin: 0 0 2px;
+}
+.session-header h2 {
+  font-family: var(--serif);
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 260px;
+  max-height: 54vh;
+  overflow-y: auto;
+  padding-right: 6px;
+  margin-bottom: 14px;
+}
+
+.msg { max-width: 88%; line-height: 1.55; font-size: 0.98rem; }
+.msg-student {
+  align-self: flex-end;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  padding: 12px 15px;
+  border-radius: 10px 10px 2px 10px;
+}
+.msg-ai {
+  align-self: flex-start;
+  color: var(--red-pen);
+  font-family: var(--hand);
+  font-size: 1.28rem;
+  line-height: 1.4;
+  padding: 4px 4px 4px 14px;
+  border-left: 2px solid var(--red-pen-soft);
+}
+.msg-ai .msg-body p { margin: 0 0 6px; }
+.msg-system {
+  align-self: center;
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.typing-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+.pencil-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--red-pen-soft);
+  animation: bob 1s infinite ease-in-out;
+}
+.pencil-dot:nth-child(2) { animation-delay: 0.15s; }
+.pencil-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes bob { 0%,80%,100% { transform: translateY(0); opacity: 0.5; } 40% { transform: translateY(-4px); opacity: 1; } }
+
+.composer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  border-top: 1px dashed var(--line);
+  padding-top: 16px;
+}
+.composer textarea {
+  flex: 1;
+  resize: vertical;
+  padding: 12px 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-family: var(--sans);
+}
+.composer textarea:focus { outline: 2px solid var(--red-pen); outline-offset: 1px; }
+
+/* ---------- Right rail: clarity ---------- */
+.clarity-rail { padding: 28px 20px; }
+.gauge-wrap { text-align: center; margin-bottom: 30px; }
+.gauge { width: 100%; max-width: 180px; }
+.gauge-track { fill: none; stroke: var(--line); stroke-width: 12; stroke-linecap: round; }
+.gauge-fill {
+  fill: none;
+  stroke: var(--red-pen);
+  stroke-width: 12;
+  stroke-linecap: round;
+  stroke-dasharray: 251.2;
+  stroke-dashoffset: 251.2;
+  transition: stroke-dashoffset 0.6s ease, stroke 0.6s ease;
+}
+.gauge-number { font-family: var(--serif); font-weight: 700; font-size: 26px; fill: var(--ink); }
+.gauge-label { font-family: var(--hand); color: var(--ink-soft); font-size: 1rem; margin: 2px 0 0; }
+
+.gaps-block { margin-bottom: 30px; }
+.paper-clip { font-size: 0.9em; }
+.gaps-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.gap-note {
+  background: var(--sticky);
+  color: #4A3E12;
+  font-family: var(--hand);
+  font-size: 1.08rem;
+  line-height: 1.25;
+  padding: 10px 12px;
+  border-radius: 2px;
+  box-shadow: 2px 3px 6px var(--shadow);
+  transform: rotate(-1.2deg);
+}
+.gap-note:nth-child(even) { transform: rotate(1.4deg); }
+
+.history-block .sparkline { width: 100%; height: 50px; }
+.sparkline-line { fill: none; stroke: var(--ink); stroke-width: 2; }
+.sparkline-dot { fill: var(--red-pen); }
+
+/* ---------- Modal ---------- */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(34, 49, 79, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10;
+  padding: 20px;
+}
+.modal {
+  background: var(--paper-raised);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  padding: 28px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 6px 6px 0 var(--shadow);
+}
+.modal h3 { font-family: var(--serif); margin: 0 0 8px; font-size: 1.3rem; }
+.modal-copy { font-size: 0.85rem; color: var(--ink-soft); line-height: 1.5; margin-bottom: 18px; }
+.field-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px; }
+.modal-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+.settings-status { font-size: 0.8rem; color: var(--red-pen); min-height: 1.2em; margin: 10px 0 0; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 980px) {
+  .layout { grid-template-columns: 1fr; }
+  .topic-rail, .clarity-rail { border-right: none; border-bottom: 1px dashed var(--line); }
+  .session-panel { border-right: none; padding: 28px 20px; }
+  .session-panel::before { left: 30px; }
+}
+
+</style>
+</head>
+<body>
+
+<div class="paper-texture" aria-hidden="true"></div>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <h1 class="wordmark">Teach It Back</h1>
+    <p class="tagline">Explain it like you mean it. An AI classmate who won't let you get away with vague.</p>
+  </div>
+  <button id="settingsBtn" class="icon-btn" title="API settings" aria-label="Open API settings">⚙ Settings</button>
+</header>
+
+<main class="layout">
+
+  <!-- LEFT: notebook / topic list -->
+  <aside class="topic-rail">
+    <div class="rail-head">
+      <span class="rail-label">Your notebook</span>
+      <button id="newTopicBtn" class="ghost-btn">+ New topic</button>
+    </div>
+    <ul id="topicList" class="topic-list"></ul>
+    <p id="emptyRailNote" class="rail-empty">Nothing here yet. Start a topic and teach it back.</p>
+  </aside>
+
+  <!-- CENTER: the actual session -->
+  <section class="session-panel">
+
+    <div id="startScreen" class="start-screen">
+      <p class="start-kicker">01 — pick something you think you understand</p>
+      <h2>What are you trying to learn?</h2>
+      <p class="start-copy">Photosynthesis, recursion, the French Revolution, Bayes' theorem — anything. Type the topic, then explain it in your own words like you're teaching a curious classmate.</p>
+      <input id="topicInput" class="topic-input" type="text" placeholder="e.g. Why the sky is blue" autocomplete="off">
+      <button id="startBtn" class="primary-btn">Start explaining →</button>
+    </div>
+
+    <div id="sessionScreen" class="session-screen hidden">
+      <div class="session-header">
+        <div>
+          <p class="session-kicker" id="sessionKicker">Teaching back</p>
+          <h2 id="sessionTopic">Topic</h2>
+        </div>
+        <button id="endSessionBtn" class="ghost-btn small">Save &amp; close</button>
+      </div>
+
+      <div id="thread" class="thread" aria-live="polite"></div>
+
+      <div id="typingRow" class="typing-row hidden">
+        <span class="pencil-dot"></span><span class="pencil-dot"></span><span class="pencil-dot"></span>
+        <span class="typing-label">reading your explanation…</span>
+      </div>
+
+      <form id="composer" class="composer">
+        <textarea id="composerInput" rows="3" placeholder="Type your explanation, or your answer to the last question…"></textarea>
+        <button id="sendBtn" type="submit" class="primary-btn">Send</button>
+      </form>
+    </div>
+
+  </section>
+
+  <!-- RIGHT: clarity meter + gaps -->
+  <aside class="clarity-rail">
+    <div class="gauge-wrap">
+      <svg id="gauge" viewBox="0 0 160 100" class="gauge">
+        <path d="M10,95 A80,80 0 0,1 150,95" class="gauge-track" />
+        <path id="gaugeFill" d="M10,95 A80,80 0 0,1 150,95" class="gauge-fill" />
+        <text id="gaugeNumber" x="80" y="78" text-anchor="middle" class="gauge-number">—</text>
+      </svg>
+      <p class="gauge-label">clarity, this session</p>
+    </div>
+
+    <div class="gaps-block">
+      <p class="rail-label">Open gaps <span class="paper-clip" aria-hidden="true">📎</span></p>
+      <ul id="gapsList" class="gaps-list"></ul>
+      <p id="gapsEmpty" class="rail-empty">Gaps your explanation hasn't covered yet will show up here as sticky notes.</p>
+    </div>
+
+    <div class="history-block">
+      <p class="rail-label">Clarity over time</p>
+      <svg id="sparkline" viewBox="0 0 200 50" class="sparkline"></svg>
+    </div>
+  </aside>
+
+</main>
+
+<!-- SETTINGS MODAL -->
+<div id="settingsModal" class="modal-backdrop hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <h3 id="settingsTitle">AI settings</h3>
+    <p class="modal-copy">Your API key is stored only in this browser's local storage. It is never sent anywhere except directly to the provider you choose, and it is never saved in this app's code or repository.</p>
+
+    <label class="field-label" for="providerSelect">Provider</label>
+    <select id="providerSelect" class="field-input">
+      <option value="groq">Groq (free, no card)</option>
+      <option value="gemini">Google Gemini (free tier)</option>
+      <option value="anthropic">Anthropic (Claude)</option>
+      <option value="openai">OpenAI</option>
+    </select>
+
+    <label class="field-label" for="modelInput">Model</label>
+    <input id="modelInput" class="field-input" type="text" placeholder="e.g. claude-sonnet-5">
+
+    <label class="field-label" for="apiKeyInput">API key</label>
+    <input id="apiKeyInput" class="field-input" type="password" placeholder="sk-...">
+
+    <div class="modal-actions">
+      <button id="clearKeyBtn" class="ghost-btn small">Forget key</button>
+      <button id="saveSettingsBtn" class="primary-btn small">Save</button>
+    </div>
+    <p id="settingsStatus" class="settings-status"></p>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   Teach It Back — app logic
+   No backend. All state lives in localStorage. The AI call goes straight
+   from this browser to the provider you choose, using a key you supply
+   and that never leaves your machine or gets written into this codebase.
+   ========================================================================= */
+
+// ---------- The AI feature: system prompt ----------
+// This is the entire "brain" of the AI classmate. It is intentionally
+// forbidden from teaching — its only job is to expose gaps in the
+// student's own explanation, Socratic-style, and to self-report a
+// clarity score + gap list as machine-readable JSON so the UI can
+// render the gauge and sticky notes without a second API call.
+const SYSTEM_PROMPT = `You are playing the role of a sharp, relentlessly curious classmate who is helping a student practice the Feynman Technique: the student explains a concept in their own words, and you test whether they actually understand it or are just repeating memorized phrases.
+
+Ground rules, follow all of them every single turn:
+1. NEVER explain the concept yourself, correct them outright, or supply the missing information. Your only tool is asking questions.
+2. Read their latest message closely and find the SPECIFIC weak spots: undefined jargon, circular definitions, hand-wavy phrases ("it just happens", "basically"), examples that don't obviously fit, logical leaps, or claims that sound rehearsed rather than understood.
+3. Ask 1-3 short, pointed follow-up questions that quote or reference the specific words THEY used. Do not ask generic questions like "can you elaborate?" — ask "you said X causes Y, but what actually connects them?"
+4. If a specific sub-point they made is genuinely clear and correct, say so in one short sentence, then move on to probing the next weak spot. Don't be needlessly harsh, but don't hand out unearned praise either.
+5. Keep your tone like a curious peer, not a teacher grading an exam. Short sentences. No lecturing.
+6. Every single reply, with no exceptions, must end with a fenced code block labeled json containing your current assessment of THIS topic based on everything explained so far in the conversation:
+\`\`\`json
+{"clarity": <integer 0-100, your honest estimate of how well they currently understand the topic>, "gaps": [<up to 5 short strings, each a specific unresolved gap, phrased as a short label like "why voltage and current differ" — not full sentences>]}
+\`\`\`
+7. The clarity score should move meaningfully turn to turn based on whether they resolved previous gaps or introduced new confusion. Do not default to round numbers out of laziness — use the full 0-100 range honestly.
+8. If clarity reaches roughly 85+ and there are no serious remaining gaps, say so plainly and congratulate them briefly — you can stop probing at that point.`;
+
+// ---------- storage helpers ----------
+const LS_TOPICS = 'teachback_topics_v1';
+const LS_PROVIDER = 'teachback_provider';
+const LS_MODEL = 'teachback_model';
+const LS_KEY = 'teachback_apikey';
+
+function loadTopics() {
+  try { return JSON.parse(localStorage.getItem(LS_TOPICS)) || []; }
+  catch { return []; }
+}
+function saveTopics(topics) {
+  localStorage.setItem(LS_TOPICS, JSON.stringify(topics));
+}
+function getSettings() {
+  return {
+    provider: localStorage.getItem(LS_PROVIDER) || 'anthropic',
+    model: localStorage.getItem(LS_MODEL) || '',
+    apiKey: localStorage.getItem(LS_KEY) || ''
+  };
+}
+function saveSettings(provider, model, apiKey) {
+  localStorage.setItem(LS_PROVIDER, provider);
+  localStorage.setItem(LS_MODEL, model);
+  localStorage.setItem(LS_KEY, apiKey);
+}
+
+const DEFAULT_MODELS = {
+  anthropic: 'claude-sonnet-5',
+  openai: 'gpt-4o-mini',
+  gemini: 'gemini-2.0-flash',
+  groq: 'llama-3.3-70b-versatile'
+};
+
+// ---------- state ----------
+let topics = loadTopics();
+let activeTopicId = null;
+
+// ---------- DOM refs ----------
+const $ = (id) => document.getElementById(id);
+const topicList = $('topicList');
+const emptyRailNote = $('emptyRailNote');
+const startScreen = $('startScreen');
+const sessionScreen = $('sessionScreen');
+const topicInput = $('topicInput');
+const startBtn = $('startBtn');
+const sessionTopic = $('sessionTopic');
+const thread = $('thread');
+const composer = $('composer');
+const composerInput = $('composerInput');
+const typingRow = $('typingRow');
+const endSessionBtn = $('endSessionBtn');
+const gaugeFill = $('gaugeFill');
+const gaugeNumber = $('gaugeNumber');
+const gapsList = $('gapsList');
+const gapsEmpty = $('gapsEmpty');
+const sparkline = $('sparkline');
+const settingsModal = $('settingsModal');
+const settingsBtn = $('settingsBtn');
+const providerSelect = $('providerSelect');
+const modelInput = $('modelInput');
+const apiKeyInput = $('apiKeyInput');
+const saveSettingsBtn = $('saveSettingsBtn');
+const clearKeyBtn = $('clearKeyBtn');
+const settingsStatus = $('settingsStatus');
+
+// ---------- rendering: topic rail ----------
+function renderTopicRail() {
+  topicList.innerHTML = '';
+  emptyRailNote.classList.toggle('hidden', topics.length > 0);
+  topics.slice().reverse().forEach(t => {
+    const li = document.createElement('li');
+    li.className = 'topic-item' + (t.id === activeTopicId ? ' active' : '');
+    const label = document.createElement('span');
+    label.textContent = t.title;
+    const score = document.createElement('span');
+    score.className = 'topic-score';
+    const last = t.clarityHistory.length ? t.clarityHistory[t.clarityHistory.length - 1] : null;
+    score.textContent = last === null ? '—' : last + '%';
+    li.appendChild(label);
+    li.appendChild(score);
+    li.addEventListener('click', () => openTopic(t.id));
+    topicList.appendChild(li);
+  });
+}
+
+// ---------- rendering: thread ----------
+function renderThread(topic) {
+  thread.innerHTML = '';
+  if (topic.messages.length === 0) {
+    const sys = document.createElement('p');
+    sys.className = 'msg msg-system';
+    sys.textContent = 'Write your explanation below to begin.';
+    thread.appendChild(sys);
+  }
+  topic.messages.forEach(m => {
+    const el = document.createElement('div');
+    if (m.role === 'student') {
+      el.className = 'msg msg-student';
+      el.textContent = m.text;
+    } else {
+      el.className = 'msg msg-ai';
+      const body = document.createElement('div');
+      body.className = 'msg-body';
+      m.text.split(/\n{2,}/).forEach(line => {
+        if (!line.trim()) return;
+        const p = document.createElement('p');
+        p.textContent = line.trim();
+        body.appendChild(p);
+      });
+      el.appendChild(body);
+    }
+    thread.appendChild(el);
+  });
+  thread.scrollTop = thread.scrollHeight;
+}
+
+// ---------- rendering: clarity gauge, gaps, sparkline ----------
+const GAUGE_CIRC = 251.2;
+function renderClarity(topic) {
+  const last = topic.clarityHistory.length ? topic.clarityHistory[topic.clarityHistory.length - 1] : null;
+  if (last === null) {
+    gaugeFill.style.strokeDashoffset = GAUGE_CIRC;
+    gaugeNumber.textContent = '—';
+  } else {
+    const offset = GAUGE_CIRC * (1 - last / 100);
+    gaugeFill.style.strokeDashoffset = String(offset);
+    gaugeFill.style.stroke = last >= 70 ? '#3E7A50' : (last >= 40 ? '#B23A2E' : '#8B2E24');
+    gaugeNumber.textContent = last + '%';
+  }
+
+  gapsList.innerHTML = '';
+  const gaps = topic.gaps || [];
+  gapsEmpty.classList.toggle('hidden', gaps.length > 0);
+  gaps.forEach(g => {
+    const li = document.createElement('li');
+    li.className = 'gap-note';
+    li.textContent = g;
+    gapsList.appendChild(li);
+  });
+
+  renderSparkline(topic.clarityHistory);
+}
+
+function renderSparkline(history) {
+  sparkline.innerHTML = '';
+  if (history.length < 2) {
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.setAttribute('x', '4'); t.setAttribute('y', '28');
+    t.setAttribute('font-size', '11'); t.setAttribute('fill', '#8B92A4');
+    t.textContent = 'not enough turns yet';
+    sparkline.appendChild(t);
+    return;
+  }
+  const w = 200, h = 50, pad = 6;
+  const recent = history.slice(-10);
+  const stepX = (w - pad * 2) / (recent.length - 1);
+  const pts = recent.map((v, i) => {
+    const x = pad + i * stepX;
+    const y = h - pad - (v / 100) * (h - pad * 2);
+    return [x, y];
+  });
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('class', 'sparkline-line');
+  path.setAttribute('d', pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '));
+  sparkline.appendChild(path);
+  pts.forEach(p => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('class', 'sparkline-dot');
+    c.setAttribute('cx', p[0]); c.setAttribute('cy', p[1]); c.setAttribute('r', '2.5');
+    sparkline.appendChild(c);
+  });
+}
+
+// ---------- topic lifecycle ----------
+function createTopic(title) {
+  const t = {
+    id: 'topic_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    title: title.trim(),
+    createdAt: new Date().toISOString(),
+    messages: [],
+    clarityHistory: [],
+    gaps: []
+  };
+  topics.push(t);
+  saveTopics(topics);
+  return t;
+}
+
+function openTopic(id) {
+  activeTopicId = id;
+  const topic = topics.find(t => t.id === id);
+  startScreen.classList.add('hidden');
+  sessionScreen.classList.remove('hidden');
+  sessionTopic.textContent = topic.title;
+  renderThread(topic);
+  renderClarity(topic);
+  renderTopicRail();
+  composerInput.focus();
+}
+
+function closeSession() {
+  activeTopicId = null;
+  sessionScreen.classList.add('hidden');
+  startScreen.classList.remove('hidden');
+  topicInput.value = '';
+  renderTopicRail();
+  topicInput.focus();
+}
+
+// ---------- AI call ----------
+async function callAI(topic) {
+  const { provider, model, apiKey } = getSettings();
+  if (!apiKey) {
+    openSettings();
+    settingsStatus.textContent = 'Add an API key first — nothing is sent anywhere until you do.';
+    throw new Error('no key');
+  }
+  const chosenModel = model || DEFAULT_MODELS[provider];
+
+  // Build the conversation the model sees: topic framing + prior turns.
+  const history = topic.messages.map(m => ({
+    role: m.role === 'student' ? 'user' : 'assistant',
+    content: m.text
+  }));
+  const framedFirstTurn = topic.messages.length === 1
+    ? [{ role: 'user', content: `Topic to teach back: "${topic.title}"\n\nMy explanation:\n${topic.messages[0].text}` }]
+    : history;
+
+  const messages = topic.messages.length === 1 ? framedFirstTurn : history;
+
+  if (provider === 'gemini') {
+    const contents = messages.map(m => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.content }]
+    }));
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${chosenModel}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents
+        })
+      }
+    );
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error('Gemini API error ' + res.status + ': ' + errText.slice(0, 300));
+    }
+    const data = await res.json();
+    const parts = data.candidates?.[0]?.content?.parts || [];
+    return parts.map(p => p.text || '').join('');
+  } else if (provider === 'anthropic') {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: chosenModel,
+        max_tokens: 700,
+        system: SYSTEM_PROMPT,
+        messages
+      })
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error('Anthropic API error ' + res.status + ': ' + errText.slice(0, 300));
+    }
+    const data = await res.json();
+    const textBlock = (data.content || []).find(b => b.type === 'text');
+    return textBlock ? textBlock.text : '';
+  } else if (provider === 'openai' || provider === 'groq') {
+    const url = provider === 'groq'
+      ? 'https://api.groq.com/openai/v1/chat/completions'
+      : 'https://api.openai.com/v1/chat/completions';
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: chosenModel,
+        max_tokens: 700,
+        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages]
+      })
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error('OpenAI API error ' + res.status + ': ' + errText.slice(0, 300));
+    }
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || '';
+  }
+}
+
+function extractAssessment(rawText) {
+  const match = rawText.match(/```json\s*([\s\S]*?)```/i);
+  let clarity = null, gaps = [];
+  let displayText = rawText;
+  if (match) {
+    displayText = rawText.slice(0, match.index).trim();
+    try {
+      const parsed = JSON.parse(match[1].trim());
+      if (typeof parsed.clarity === 'number') clarity = Math.max(0, Math.min(100, Math.round(parsed.clarity)));
+      if (Array.isArray(parsed.gaps)) gaps = parsed.gaps.filter(g => typeof g === 'string').slice(0, 5);
+    } catch { /* leave defaults */ }
+  }
+  if (!displayText) displayText = "Hm, tell me more about that.";
+  return { displayText, clarity, gaps };
+}
+
+// ---------- composer submit ----------
+composer.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const text = composerInput.value.trim();
+  if (!text) return;
+  const topic = topics.find(t => t.id === activeTopicId);
+  if (!topic) return;
+
+  topic.messages.push({ role: 'student', text });
+  composerInput.value = '';
+  renderThread(topic);
+  saveTopics(topics);
+
+  typingRow.classList.remove('hidden');
+  $('sendBtn').disabled = true;
+  try {
+    const raw = await callAI(topic);
+    const { displayText, clarity, gaps } = extractAssessment(raw);
+    topic.messages.push({ role: 'ai', text: displayText });
+    if (clarity !== null) topic.clarityHistory.push(clarity);
+    topic.gaps = gaps;
+    saveTopics(topics);
+    renderThread(topic);
+    renderClarity(topic);
+    renderTopicRail();
+  } catch (err) {
+    topic.messages.push({ role: 'ai', text: '(Something went wrong reaching the AI: ' + err.message + ')' });
+    renderThread(topic);
+  } finally {
+    typingRow.classList.add('hidden');
+    $('sendBtn').disabled = false;
+    composerInput.focus();
+  }
+});
+
+// ---------- start / new topic ----------
+startBtn.addEventListener('click', () => {
+  const title = topicInput.value.trim();
+  if (!title) { topicInput.focus(); return; }
+  const t = createTopic(title);
+  openTopic(t.id);
+});
+topicInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') startBtn.click();
+});
+$('newTopicBtn').addEventListener('click', closeSession);
+endSessionBtn.addEventListener('click', closeSession);
+
+// ---------- settings modal ----------
+function openSettings() {
+  const s = getSettings();
+  providerSelect.value = s.provider;
+  modelInput.value = s.model || DEFAULT_MODELS[s.provider];
+  apiKeyInput.value = s.apiKey;
+  settingsStatus.textContent = '';
+  settingsModal.classList.remove('hidden');
+}
+function closeSettings() { settingsModal.classList.add('hidden'); }
+
+settingsBtn.addEventListener('click', openSettings);
+settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettings(); });
+providerSelect.addEventListener('change', () => {
+  if (!modelInput.value || Object.values(DEFAULT_MODELS).includes(modelInput.value)) {
+    modelInput.value = DEFAULT_MODELS[providerSelect.value];
+  }
+});
+saveSettingsBtn.addEventListener('click', () => {
+  saveSettings(providerSelect.value, modelInput.value.trim(), apiKeyInput.value.trim());
+  settingsStatus.textContent = 'Saved locally in this browser.';
+  setTimeout(closeSettings, 700);
+});
+clearKeyBtn.addEventListener('click', () => {
+  saveSettings(providerSelect.value, modelInput.value.trim(), '');
+  apiKeyInput.value = '';
+  settingsStatus.textContent = 'Key forgotten.';
+});
+
+// ---------- init ----------
+(function init() {
+  renderTopicRail();
+  const s = getSettings();
+  if (!s.apiKey) {
+    // Gentle nudge on first load, doesn't block browsing.
+    setTimeout(() => {
+      settingsStatus.textContent = '';
+      openSettings();
+    }, 400);
+  }
+})();
+
+</script>
+</body>
+</html>
